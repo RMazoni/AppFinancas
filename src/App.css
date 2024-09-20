@@ -1,0 +1,24 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.menu {
+  margin: 20px 0;
+}
+
+.menu button {
+  margin: 0 5px; /* Espaçamento entre os botões */
+  padding: 5px 10px; /* Diminuir o espaçamento interno */
+  font-size: 0.9rem; /* Tamanho do texto menor */
+  background-color: #28a745; /* Cor de fundo verde */
+  color: white; /* Cor do texto */
+  border: none; /* Sem borda */
+  border-radius: 5px; /* Bordas arredondadas */
+  cursor: pointer; /* Mão ao passar o mouse */
+}
+
+.menu button:hover {
+  background-color: #218838; /* Cor de fundo ao passar o mouse */
+}
