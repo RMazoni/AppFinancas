@@ -2,10 +2,22 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 import './Importar.css'; // Importando um arquivo de estilo
 
+const mesJaImportado = (mesAno) => {
+  const historico = JSON.parse(localStorage.getItem('historico')) || {};
+  return historico[mesAno] !== undefined;
+}
+
 function Importar() {
   const [transacoesCorrente, setTransacoesCorrente] = useState([]);
   const [transacoesPoupanca, setTransacoesPoupanca] = useState([]);
   const [confirmaSalvar, setConfirmaSalvar] = useState(false);
+
+  // Função para gerar o ID no formato CCYYYYMM-XX ou PPYYYYMM-XX
+  const gerarIdTransacao = (tipoConta, ano, mes, index) => {
+    const prefixo = tipoConta === 'Conta Corrente' ? 'CC' : 'PP';
+    const mesAno = `${ano}${mes.padStart(2, '0')}`; // Certifica que o mês tem dois dígitos
+    return `${prefixo}${mesAno}-${String(index + 1).padStart(2, '0')}`; // Adiciona o número da transação com dois dígitos
+  };
 
   // Função para converter o valor com base no tipo de conta
   const converterValor = (valor, tipoConta) => {
@@ -14,8 +26,8 @@ function Importar() {
       if (tipoConta === 'Conta Corrente') {
         valorFormatado = valorFormatado.replace(',', '.');
       } else if (tipoConta === 'Conta Poupança') {
-        valorFormatado = valorFormatado.replace(/\./g, '');
         valorFormatado = valorFormatado.replace(',', '.');
+        valorFormatado = valorFormatado.replace(/\.(?=\d{3})/g, '');        
       }
       if (valorFormatado.endsWith('D')) {
         valorFormatado = valorFormatado.slice(0, -1);
@@ -34,19 +46,23 @@ function Importar() {
     const descricoesIgnoradas = [
       "BB Rende Fácil",
       "Aplicação Poupança",
-      "Transferência de Crédito"
+      "Transferência de Crédito",
+      "Tesouro Direto-Compra",
+      "Compra de Ações",
+      "Transferido da poupança",
+      "Transferencia Para Conta"
     ];
     return descricoesIgnoradas.some(filtro => descricao.includes(filtro));
   };
 
   // Função para mapear cada transação e aplicar os filtros
-  const mapearExtrato = (row, index, tipoConta) => {
+  const mapearExtrato = (row, index, tipoConta, ano, mes) => {
     if (deveIgnorarTransacao(row['Histórico'])) {
       return null; // Ignora a transação se o filtro for acionado
     }
-    
+
     return {
-      id: index + 1,
+      id: gerarIdTransacao(tipoConta, ano, mes, index), // Gera o ID com a nova formatação
       data: row['Data'] || 'Data Indisponível',
       descricao: row['Histórico'] || 'Sem Descrição',
       valor: converterValor(row['Valor'], tipoConta),
@@ -63,8 +79,20 @@ function Importar() {
       encoding: "ISO-8859-1",
       complete: (result) => {
         const relevantRows = result.data.slice(1, result.data.length - 2);
+        const primeiraTransacao = relevantRows[0];
+
+        if (!primeiraTransacao) return;
+
+        const [, mes, ano] = primeiraTransacao['Data'].split('/');
+        const mesAno = `${ano}-${mes}`;
+
+        if (mesJaImportado(mesAno)) {
+          const substituir = window.confirm(`O mês ${mes}/${ano} já foi importado. Deseja substituir os dados?`);
+          if (!substituir) return;
+        }
+
         const newTransactions = relevantRows
-          .map((row, index) => mapearExtrato(row, index, 'Conta Corrente'))
+          .map((row, index) => mapearExtrato(row, index, 'Conta Corrente', ano, mes))
           .filter(Boolean); // Remove transações nulas (ignoradas)
         setTransacoesCorrente(newTransactions);
       }
@@ -79,8 +107,20 @@ function Importar() {
       encoding: "ISO-8859-1",
       complete: (result) => {
         const relevantRows = result.data.filter(row => row['Data'] && row['Histórico'] && row['Valor']);
+        const primeiraTransacao = relevantRows[0];
+
+        if (!primeiraTransacao) return;
+
+        const [, mes, ano] = primeiraTransacao['Data'].split('/');
+        const mesAno = `${ano}-${mes}`;
+
+        if (mesJaImportado(mesAno)) {
+          const substituir = window.confirm(`O mês ${mes}/${ano} já foi importado. Deseja substituir os dados?`);
+          if (!substituir) return;
+        }
+
         const newTransactions = relevantRows
-          .map((row, index) => mapearExtrato(row, index, 'Conta Poupança'))
+          .map((row, index) => mapearExtrato(row, index, 'Conta Poupança', ano, mes))
           .filter(Boolean); // Remove transações nulas (ignoradas)
         setTransacoesPoupanca(newTransactions);
       }
@@ -97,18 +137,24 @@ function Importar() {
     }
   
     const dataTransacao = primeiraTransacao.data; // formato dd/mm/aaaa
-    const [, mes, ano] = dataTransacao.split('/'); // Agora só pegamos mês e ano
-  
+    const [, mes, ano] = dataTransacao.split('/'); // Pegando o mês e o ano
+    
     const anoMes = `${ano}-${mes}`; // Formato 'aaaa-mm'
     
     const historico = JSON.parse(localStorage.getItem('historico')) || {};
   
     const todasTransacoes = [...transacoesCorrente, ...transacoesPoupanca];
     
+    // Verifica se já existem transações para o mês/ano
     if (historico[anoMes]) {
-      historico[anoMes] = [...historico[anoMes], ...todasTransacoes];
+      const substituir = window.confirm(`O mês ${mes}/${ano} já possui transações. Deseja substituir os dados existentes?`);
+      if (substituir) {
+        historico[anoMes] = todasTransacoes; // Substitui as transações
+      } else {
+        return; // Cancela o salvamento
+      }
     } else {
-      historico[anoMes] = todasTransacoes;
+      historico[anoMes] = todasTransacoes; // Adiciona transações novas
     }
   
     localStorage.setItem('historico', JSON.stringify(historico));
@@ -154,17 +200,21 @@ function Importar() {
             <table>
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Data</th>
                   <th>Descrição</th>
                   <th>Valor</th>
                 </tr>
               </thead>
               <tbody>
-                {transacoesCorrente.map(transacao => (
+                {transacoesCorrente.map((transacao) => (
                   <tr key={transacao.id}>
+                    <td>{transacao.id}</td>
                     <td>{transacao.data}</td>
                     <td>{transacao.descricao}</td>
-                    <td>{transacao.valor.toFixed(2)}</td>
+                    <td style={{ color: transacao.valor < 0 ? 'red' : 'black' }}>
+                      {transacao.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -178,41 +228,36 @@ function Importar() {
             <table>
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Data</th>
                   <th>Descrição</th>
                   <th>Valor</th>
                 </tr>
               </thead>
               <tbody>
-                {transacoesPoupanca.map(transacao => (
+                {transacoesPoupanca.map((transacao) => (
                   <tr key={transacao.id}>
+                    <td>{transacao.id}</td>
                     <td>{transacao.data}</td>
                     <td>{transacao.descricao}</td>
-                    <td>{transacao.valor.toFixed(2)}</td>
+                    <td style={{ color: transacao.valor < 0 ? 'red' : 'black' }}>
+                      {transacao.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
 
-      {(transacoesCorrente.length > 0 || transacoesPoupanca.length > 0) && (
-        <div className="acao-salvar">
-          <button onClick={() => setConfirmaSalvar(true)}>Conferir e Salvar</button>
-          {confirmaSalvar && (
-            <div>
-              <button onClick={salvarHistorico}>Salvar</button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="resumo">
-        <h3>Resumo das Transações</h3>
-        <p>As suas receitas foram: R$ {totalReceitas.toFixed(2)}</p>
-        <p>Suas despesas foram: R$ {totalDespesas.toFixed(2)}</p>
-        <p>Gerando o saldo: R$ {saldo.toFixed(2)}</p>
+        {(transacoesCorrente.length > 0 || transacoesPoupanca.length > 0) && (
+          <div className="resumo">
+            <p>Receitas: {totalReceitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+            <p>Despesas: {totalDespesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+            <p>Saldo: {saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+            <button onClick={salvarHistorico}>Salvar Transações</button>
+          </div>
+        )}
       </div>
     </div>
   );

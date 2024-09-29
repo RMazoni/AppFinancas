@@ -22,3 +22,86 @@
 .menu button:hover {
   background-color: #218838; /* Cor de fundo ao passar o mouse */
 }
+
+.editar-container {
+  display: flex;
+  justify-content: center; /* Centraliza horizontalmente */
+  align-items: center;     /* Centraliza verticalmente (se quiser) */
+  min-height: 80vh;        /* Define a altura mínima da área de edição */
+  flex-direction: column;  /* Mantém o título e a tabela empilhados */
+}
+
+.tabela-editar {
+  border-collapse: collapse;  /* Remove espaços entre bordas */
+  width: 80%;                 /* Define a largura da tabela */
+  max-width: 1000px;          /* Limita a largura máxima */
+  margin-top: 20px;
+}
+
+.tabela-editar th, .tabela-editar td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.tabela-editar th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.tabela-editar th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.tabela-editar td.descricao {
+  width: 60%; /* Aumenta o espaço da coluna descrição */
+}
+
+.tabela-editar td.valor {
+  width: 15%; /* Diminui o espaço da coluna valor */
+}
+
+.tabela-editar td.outras {
+  width: 25%; /* Espaço para as demais colunas */
+}
+
+.resumo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centraliza todo o conteúdo horizontalmente */
+}
+
+.ano-container {
+  margin-bottom: 40px; /* Espaçamento entre os blocos de anos */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centraliza cada tabela de ano */
+}
+
+.tabela-resumo {
+  border-collapse: collapse;
+  width: 80%;             /* Define a largura da tabela */
+  max-width: 1000px;      /* Limita a largura máxima */
+  margin-top: 20px;
+}
+
+.tabela-resumo th, .tabela-resumo td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.tabela-resumo th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.tabela-resumo input {
+  width: 100%;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+

@@ -24,7 +24,7 @@ function Resumo() {
   const anosOrdenados = Object.keys(historicoAgrupadoPorAno).sort((a, b) => b - a);
 
   const handleEdit = (mes) => {
-    navigate(`/importar/${mes}`); // Passa o mês como parâmetro na URL
+    navigate(`/editar/${mes}`); // Passa o mês como parâmetro na URL
   };
   
   const handleDelete = (mes) => {
@@ -37,7 +37,7 @@ function Resumo() {
   };
 
   return (
-    <div>
+    <div className="resumo-container"> {/* Adiciona a classe resumo-container */}
       <h1>Resumo das Transações</h1>
       {anosOrdenados.map((ano) => {
         let saldoAnual = 0; // Acumula o saldo do ano
@@ -46,9 +46,9 @@ function Resumo() {
         const mesesOrdenados = historicoAgrupadoPorAno[ano].sort();
 
         return (
-          <div key={ano}>
+          <div key={ano} className="ano-container"> {/* Adiciona a classe ano-container */}
             <h2>Ano: {ano}</h2>
-            <table>
+            <table className="tabela-resumo"> {/* Adiciona a classe tabela-resumo */}
               <thead>
                 <tr>
                   <th>Mês</th>
